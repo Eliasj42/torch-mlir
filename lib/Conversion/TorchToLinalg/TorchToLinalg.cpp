@@ -1665,7 +1665,8 @@ struct ConvertElementwiseOp : ConversionPattern {
     if (!isa<AtenTanhOp, AtenReluOp, AtenGeluOp, AtenAddTensorOp,
              AtenMulTensorOp, AtenDivTensorOp, AtenSubTensorOp,
              AtenLerpTensorOp, AtenSigmoidOp, AtenExpOp, AtenMinimumOp,
-             AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp, AtenSqrtOp>(op))
+             AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp,
+             AtenSqrtOp>(op))
       return rewriter.notifyMatchFailure(op, "not a supported elementwise op");
 
     if (failed(verifyLinalgCompatibleTypes(op, rewriter)))
@@ -2801,7 +2802,8 @@ public:
     target.addIllegalOp<AtenTanhOp, AtenReluOp, AtenGeluOp, AtenAddTensorOp,
                         AtenMulTensorOp, AtenDivTensorOp, AtenSubTensorOp,
                         AtenLerpTensorOp, AtenSigmoidOp, AtenMinimumOp,
-                        AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp, AtenSqrtOp>();
+                        AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp,
+                        AtenSqrtOp>();
     patterns.add<ConvertElementwiseOp>(typeConverter, context);
     target.addIllegalOp<AtenUnsqueezeOp>();
     patterns.add<ConvertAtenUnsqueezeOp>(typeConverter, context);
