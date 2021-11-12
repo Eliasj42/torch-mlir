@@ -162,6 +162,27 @@ public:
 };
 } // namespace
 
+// Decompose torch.addcmul into torch.add and torch.mul
+namespace {
+class DecomposeAtenAddCMulOp : public OpRewritePattern<AtenAddCMulOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(AtenAddCMulOp op,
+                                PatternRewriter &rewriter) const override {
+    BaseTensorType tensorType = op.getType().cast<BaseTensorType>();
+    Location loc = op.getLoc();
+    Value t = op.self();
+    Value t1 = op.tensor1();
+    Value t2 = op.tensor2();
+    Value value = op.value();   
+
+    Value product = rewriter.create<AtenMulTensorOp>(loc, tensorType, t1, t2);
+    rewriter.replaceOpWithNewOp<AtenAddTensorOp>(op, tensorType, t, product, value);
+
+    return success();
+  }
+};
+}
+
 namespace {
 class DecomposeComplexOpsPass
     : public DecomposeComplexOpsBase<DecomposeComplexOpsPass> {
@@ -185,6 +206,8 @@ class DecomposeComplexOpsPass
       // Make aten.matmul legal if the following condition is satisfied.
       return (lhsRank != 2 || rhsRank != 2) && (lhsRank != 3 || rhsRank != 3);
     });
+    patterns.add<DecomposeAtenAddCMulOp>(context);
+    target.addIllegalOp<AtenAddCMulOp>();
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       return signalPassFailure();
@@ -196,3 +219,5 @@ std::unique_ptr<OperationPass<FuncOp>>
 mlir::torch::Torch::createDecomposeComplexOpsPass() {
   return std::make_unique<DecomposeComplexOpsPass>();
 }
+
+

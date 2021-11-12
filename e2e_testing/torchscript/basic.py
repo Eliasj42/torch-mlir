@@ -545,3 +545,22 @@ class LogSoftmaxIntModule(torch.nn.Module):
 @register_test_case(module_factory=lambda: LogSoftmaxIntModule())
 def LogSoftmaxIntModule_basic(module, tu: TestUtils):
     module.forward(torch.randn(3, 2, 4).double())
+
+class AddCMulModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @export
+    @annotate_args([
+        None,   
+        ([-1, -1], torch.float32, True),
+        ([-1, -1], torch.float32, True),
+        ([-1, -1], torch.float32, True),
+    ])
+
+    def forward(self, input, tensor1, tensor2):
+        return torch.addcmul(input, tensor1, tensor2, value=1.0)
+
+@register_test_case(module_factory=lambda: AddCMulModule())
+def AddCMulModule_basic(module, tu: TestUtils):
+    module.forward(tu.rand(3,1), tu.rand(3,1), tu.rand(3,1))

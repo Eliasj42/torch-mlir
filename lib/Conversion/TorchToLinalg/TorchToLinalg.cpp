@@ -1318,10 +1318,10 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
   }
   if (auto add = dyn_cast<AtenAddTensorOp>(op)) {
     AtenAddTensorOp::Adaptor adaptor(operands);
-    if (add.alpha().getType().isa<Torch::FloatType>()) {
-      add.emitError("unimplemented: !torch.float 'alpha'");
-      return nullptr;
-    }
+    //if (add.alpha().getType().isa<Torch::FloatType>()) {
+    //  add.emitError("unimplemented: !torch.float 'alpha'");
+    //  return nullptr;
+    //}
     if (!add.getType()
              .cast<ValueTensorType>()
              .getDtype()
@@ -1329,8 +1329,14 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
       add.emitError("unimplemented: non-floating point dtype");
       return nullptr;
     }
-    Value alphaFloat = b.create<arith::SIToFPOp>(loc, payloadArgs[0].getType(),
+    Value alphaFloat;
+    if (add.alpha().getType().isa<Torch::FloatType>()) {
+      alphaFloat = b.create<arith::TruncFOp>(loc, payloadArgs[0].getType(),
                                                  adaptor.alpha());
+    } else {
+      alphaFloat = b.create<arith::SIToFPOp>(loc, payloadArgs[0].getType(),
+                                                 adaptor.alpha());
+    }
     Value scaled = b.create<arith::MulFOp>(loc, payloadArgs[1], alphaFloat);
     return b.create<arith::AddFOp>(loc, payloadArgs[0], scaled);
   }

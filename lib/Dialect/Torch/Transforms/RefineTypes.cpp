@@ -415,6 +415,8 @@ public:
       return visitAtenSoftmaxLikeOp(softmaxIntOp, operands);
     } else if (auto logSoftmaxIntOp = dyn_cast<AtenLogSoftmaxIntOp>(op)) {
       return visitAtenSoftmaxLikeOp(logSoftmaxIntOp, operands);
+    } else if (auto addCMulOp = dyn_cast<AtenAddCMulOp>(op)) {
+      return visitAtenAddCMulOp(addCMulOp, operands);
     }
 
     // Otherwise, this is an unknown operation. Just mark all results as
@@ -516,6 +518,10 @@ private:
   ChangeResult
   visitAtenMatmulOp(AtenMatmulOp op,
                     ArrayRef<LatticeElement<ValueKnowledge> *> operands);
+
+  ChangeResult
+  visitAtenAddCMulOp(AtenAddCMulOp op,
+                     ArrayRef<LatticeElement<ValueKnowledge> *> operands);
   
   template <typename OpTy>
   ChangeResult
@@ -1313,6 +1319,23 @@ ChangeResult TypeAnalyzer::visitAtenMatmulOp(
   knowledge.hasSizes = true;
   return getLatticeElement(op->getResult(0)).join(knowledge);
 }
+
+ChangeResult TypeAnalyzer::visitAtenAddCMulOp(
+    AtenAddCMulOp op, ArrayRef<LatticeElement<ValueKnowledge> *> operands) {
+  auto knowledge =
+    ValueKnowledge::getNotNonePessimisticValueState(op->getContext());  
+  auto self = operands[0]->getValue();
+  auto tensor1 = operands[1]->getValue();
+  auto tensor2 = operands[2]->getValue();
+  if (tensor1.hasSizes && tensor2.hasSizes && self.hasSizes) {
+    knowledge.hasSizes = true;
+    knowledge.sizes.resize(2,
+                           kUnknownSize);
+  }
+  knowledge.dtype = getPromotedResultType(getContext(), {&self, &tensor1, &tensor2});
+  return getLatticeElement(op->getResult(0)).join(knowledge);
+}
+
 
 // -----------------------------------------------------------------------------
 // Transforms.

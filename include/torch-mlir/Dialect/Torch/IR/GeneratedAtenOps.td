@@ -2714,3 +2714,20 @@ def Torch_AtenSqrtOp : Torch_Op<"aten.sqrt", [
   let assemblyFormat = "$a `,` attr-dict `:` type($a) `->` type($result)";
 }
 
+def Torch_AtenAddCMulOp : Torch_Op<"aten.addcmul", [
+    AllowsTypeRefinement,
+    HasValueSemantics
+  ]> {
+  let summary = "Generated op for `aten::addcmul : (Tensor, Tensor, Tensor, Scalar) -> (Tensor)`";
+  let arguments = (ins
+    AnyTorchTensorType:$self,
+    AnyTorchTensorType:$tensor1,
+    AnyTorchTensorType:$tensor2,
+    AnyTorchScalarType:$value
+  );
+  let results = (outs
+    AnyTorchTensorType:$result
+  );
+  let assemblyFormat = "$self `,` $tensor1 `,` $tensor2 `,` $value attr-dict `:` type($self) `,` type($tensor1) `,` type($tensor2) `,` type($value) `->` type($result)";
+}
+
