@@ -563,4 +563,4 @@ class AddCMulModule(torch.nn.Module):
 
 @register_test_case(module_factory=lambda: AddCMulModule())
 def AddCMulModule_basic(module, tu: TestUtils):
-    module.forward(tu.rand(3,1), tu.rand(3,1), tu.rand(3,1))
+    module.forward(tu.rand(3,1), tu.rand(1,3), tu.rand(3,1))
