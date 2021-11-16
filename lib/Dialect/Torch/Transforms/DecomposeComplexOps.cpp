@@ -160,9 +160,8 @@ public:
     return success();
   }
 };
-} // namespace
+}
 
-// Decompose torch.addcmul into torch.add and torch.mul
 namespace {
 class DecomposeAtenAddCMulOp : public OpRewritePattern<AtenAddCMulOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -176,6 +175,26 @@ class DecomposeAtenAddCMulOp : public OpRewritePattern<AtenAddCMulOp> {
     Value value = op.value();   
 
     Value product = rewriter.create<AtenMulTensorOp>(loc, tensorType, t1, t2);
+    rewriter.replaceOpWithNewOp<AtenAddTensorOp>(op, tensorType, t, product, value);
+
+    return success();
+  }
+};
+}
+
+namespace {
+class DecomposeAtenAddCDivOp : public OpRewritePattern<AtenAddCDivOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(AtenAddCDivOp op,
+                                PatternRewriter &rewriter) const override {
+    BaseTensorType tensorType = op.getType().cast<BaseTensorType>();
+    Location loc = op.getLoc();
+    Value t = op.self();
+    Value t1 = op.tensor1();
+    Value t2 = op.tensor2();
+    Value value = op.value();   
+
+    Value product = rewriter.create<AtenDivTensorOp>(loc, tensorType, t1, t2);
     rewriter.replaceOpWithNewOp<AtenAddTensorOp>(op, tensorType, t, product, value);
 
     return success();
@@ -208,6 +227,8 @@ class DecomposeComplexOpsPass
     });
     patterns.add<DecomposeAtenAddCMulOp>(context);
     target.addIllegalOp<AtenAddCMulOp>();
+    patterns.add<DecomposeAtenAddCDivOp>(context);
+    target.addIllegalOp<AtenAddCDivOp>();
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       return signalPassFailure();

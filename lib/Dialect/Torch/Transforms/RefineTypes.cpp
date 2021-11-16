@@ -416,7 +416,9 @@ public:
     } else if (auto logSoftmaxIntOp = dyn_cast<AtenLogSoftmaxIntOp>(op)) {
       return visitAtenSoftmaxLikeOp(logSoftmaxIntOp, operands);
     } else if (auto addCMulOp = dyn_cast<AtenAddCMulOp>(op)) {
-      return visitAtenAddCMulOp(addCMulOp, operands);
+      return visitAtenAddCLikeOp(addCMulOp, operands);
+    } else if (auto addCDivOp = dyn_cast<AtenAddCDivOp>(op)) {
+      return visitAtenAddCLikeOp(addCDivOp, operands);
     }
 
     // Otherwise, this is an unknown operation. Just mark all results as
@@ -519,8 +521,9 @@ private:
   visitAtenMatmulOp(AtenMatmulOp op,
                     ArrayRef<LatticeElement<ValueKnowledge> *> operands);
 
+  template <typename OpTy>
   ChangeResult
-  visitAtenAddCMulOp(AtenAddCMulOp op,
+  visitAtenAddCLikeOp(OpTy op,
                      ArrayRef<LatticeElement<ValueKnowledge> *> operands);
   
   template <typename OpTy>
@@ -1320,8 +1323,9 @@ ChangeResult TypeAnalyzer::visitAtenMatmulOp(
   return getLatticeElement(op->getResult(0)).join(knowledge);
 }
 
-ChangeResult TypeAnalyzer::visitAtenAddCMulOp(
-    AtenAddCMulOp op, ArrayRef<LatticeElement<ValueKnowledge> *> operands) {
+template <typename OpTy>
+ChangeResult TypeAnalyzer::visitAtenAddCLikeOp(
+    OpTy op, ArrayRef<LatticeElement<ValueKnowledge> *> operands) {
   auto knowledge =
     ValueKnowledge::getNotNonePessimisticValueState(op->getContext());  
   auto self = operands[0]->getValue();
@@ -1329,7 +1333,7 @@ ChangeResult TypeAnalyzer::visitAtenAddCMulOp(
   auto tensor2 = operands[2]->getValue();
   if (tensor1.hasSizes && tensor2.hasSizes && self.hasSizes) {
     knowledge.hasSizes = true;
-    knowledge.sizes.resize(2,
+    knowledge.sizes.resize(std::max(self.sizes.size(), std::max(tensor1.sizes.size(), tensor2.sizes.size())),
                            kUnknownSize);
   }
   knowledge.dtype = getPromotedResultType(getContext(), {&self, &tensor1, &tensor2});

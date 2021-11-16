@@ -1318,10 +1318,6 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
   }
   if (auto add = dyn_cast<AtenAddTensorOp>(op)) {
     AtenAddTensorOp::Adaptor adaptor(operands);
-    //if (add.alpha().getType().isa<Torch::FloatType>()) {
-    //  add.emitError("unimplemented: !torch.float 'alpha'");
-    //  return nullptr;
-    //}
     if (!add.getType()
              .cast<ValueTensorType>()
              .getDtype()
