@@ -1280,8 +1280,6 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
     return b.create<math::ExpOp>(loc, payloadArgs[0]);
   if (isa<AtenLogOp>(op))
     return b.create<math::LogOp>(loc, payloadArgs[0]);
-  if (isa<AtenSqrtOp>(op))
-    return b.create<math::SqrtOp>(loc, payloadArgs[0]);
   if (isa<AtenSigmoidOp>(op)) {
     Type elementType = payloadArgs[0].getType();
     auto one = b.create<arith::ConstantOp>(loc, FloatAttr::get(elementType, 1));
@@ -1318,6 +1316,10 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
   }
   if (auto add = dyn_cast<AtenAddTensorOp>(op)) {
     AtenAddTensorOp::Adaptor adaptor(operands);
+    if (add.alpha().getType().isa<Torch::FloatType>()) {
+      add.emitError("unimplemented: !torch.float 'alpha'");
+      return nullptr;
+    }
     if (!add.getType()
              .cast<ValueTensorType>()
              .getDtype()
@@ -1325,14 +1327,8 @@ static Value createLinalgPayloadCalculationForElementwiseOp(
       add.emitError("unimplemented: non-floating point dtype");
       return nullptr;
     }
-    Value alphaFloat;
-    if (add.alpha().getType().isa<Torch::FloatType>()) {
-      alphaFloat = b.create<arith::TruncFOp>(loc, payloadArgs[0].getType(),
+    Value alphaFloat = b.create<arith::SIToFPOp>(loc, payloadArgs[0].getType(),
                                                  adaptor.alpha());
-    } else {
-      alphaFloat = b.create<arith::SIToFPOp>(loc, payloadArgs[0].getType(),
-                                                 adaptor.alpha());
-    }
     Value scaled = b.create<arith::MulFOp>(loc, payloadArgs[1], alphaFloat);
     return b.create<arith::AddFOp>(loc, payloadArgs[0], scaled);
   }
@@ -1667,8 +1663,7 @@ struct ConvertElementwiseOp : ConversionPattern {
     if (!isa<AtenTanhOp, AtenReluOp, AtenGeluOp, AtenAddTensorOp,
              AtenMulTensorOp, AtenDivTensorOp, AtenSubTensorOp,
              AtenLerpTensorOp, AtenSigmoidOp, AtenExpOp, AtenMinimumOp,
-             AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp,
-             AtenSqrtOp>(op))
+             AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp>(op))
       return rewriter.notifyMatchFailure(op, "not a supported elementwise op");
 
     if (failed(verifyLinalgCompatibleTypes(op, rewriter)))
@@ -2804,8 +2799,7 @@ public:
     target.addIllegalOp<AtenTanhOp, AtenReluOp, AtenGeluOp, AtenAddTensorOp,
                         AtenMulTensorOp, AtenDivTensorOp, AtenSubTensorOp,
                         AtenLerpTensorOp, AtenSigmoidOp, AtenMinimumOp,
-                        AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp,
-                        AtenSqrtOp>();
+                        AtenMaximumOp, AtenClampOp, AtenRsubScalarOp, AtenLogOp>();
     patterns.add<ConvertElementwiseOp>(typeConverter, context);
     target.addIllegalOp<AtenUnsqueezeOp>();
     patterns.add<ConvertAtenUnsqueezeOp>(typeConverter, context);
