@@ -61,6 +61,9 @@ void populateLinearOpPatternsAndLegality(
 void populatePoolingOpPatternsAndLegality(
     TypeConverter &typeConverter, RewritePatternSet &patterns,
     ConversionTarget &target, const TorchToStablehloOptions &options);
+void populateIndirectDataMovementPatternsAndLegality(
+    TypeConverter &typeConverter, RewritePatternSet &patterns,
+    ConversionTarget &target, const TorchToStablehloOptions &options);
 
 } // namespace torch_to_stablehlo
 } // namespace torch
